@@ -1,0 +1,85 @@
+# .copilotignore - Restrict GitHub Copilot from using specific files for suggestions
+#
+# This file prevents GitHub Copilot from analyzing listed files when generating code suggestions.
+# It works similarly to a .gitignore file but is used exclusively to manage Copilot's behavior.
+#
+# 🔹 Why use a .copilotignore file?
+# -----------------------------------
+# - **Security**: Prevents Copilot from accessing files containing API keys, credentials, or other secrets.
+# - **Compliance**: Helps follow security best practices by restricting AI access to sensitive data.
+# - **Efficiency**: Avoids unnecessary AI suggestions in files where completions are not useful, such as logs, data files, or compiled binaries.
+#
+# 🚀 How to Enable `.copilotignore` in VS Code
+# -------------------------------------------
+# To make this file work in **Visual Studio Code**, follow these steps:
+#
+# 1️⃣ **Install the Copilot Ignore Extension**
+#    - Open **VS Code** and go to the Extensions Marketplace (`Ctrl + Shift + X` / `Cmd + Shift + X`).
+#    - Search for **"Copilot Ignore"** from Mattickx and install it.
+#
+# 2️⃣ **Restart VS Code**
+#
+# 3️⃣ **Create or update `.copilotignore` in your project root**
+#    - Add patterns to exclude files Copilot should ignore.
+#
+# 4️⃣ **Verify the extension is working**
+#    - Open a file listed in `.copilotignore` and check if Copilot stops suggesting completions.
+
+# 🛡️ Files containing sensitive information
+.env
+*.env
+.env.local
+.env.development
+.env.production
+.env.test
+*.ini
+*.toml
+*.cfg
+*.conf
+
+# 🔑 Private keys and authentication files
+*.pem
+*.crt
+*.key
+*.pfx
+*.cert
+
+# 🔐 Secrets management and authentication data
+*.secrets
+*.vault
+*.cred
+*.private
+*.token
+*.auth
+secrets.json
+config/secrets.yml
+
+# 📂 Database and credentials
+*.sqlite
+*.db
+*.db-shm
+*.db-wal
+*.mysql
+*.psql
+
+# 📜 Logs and debugging files
+*.log
+logs/
+debug.log
+nohup.out
+
+# 🏗️ Compiled and binary files
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.out
+*.pyc
+*.pyo
+
+# 📊 Large data and AI model artifacts
+*.csv
+*.tsv
+*.parquet
+*.js
