@@ -1,0 +1,44 @@
+---
+title: Multi-Agent System Architecture (Grouped by Pattern)
+---
+
+flowchart TD
+
+    %% Subgraphs for architecture types
+    subgraph H[Hierarchical: Marketing Campaign Builder]
+        MarketingRoot((Campaign Director Agent))
+        MarketingRoot --> CreativeLead(("Creative Lead Agent"))
+        MarketingRoot --> AnalyticsLead(("Analytics Lead Agent"))
+        MarketingRoot --> DeploymentLead(("Deployment Lead Agent"))
+
+        CreativeLead --> Copywriter(("Copywriter Agent"))
+        CreativeLead --> Designer(("Designer Agent"))
+
+        AnalyticsLead --> DataCleaner(("Data Cleaner Agent"))
+        AnalyticsLead --> InsightsGen(("Insights Generator Agent"))
+
+        DeploymentLead --> SocialAgent(("Social Agent"))
+        DeploymentLead --> EmailAgent(("Email Agent"))
+    end
+
+    subgraph S[Supervisor: Customer Support Automation]
+        SupportRoot((Supervisor Agent))
+        SupportRoot --> BillingAgent(("Billing Agent"))
+        SupportRoot --> TechSupportAgent(("Tech Support Agent"))
+        SupportRoot --> FAQAgent(("FAQ Agent"))
+    end
+
+    subgraph N[Network: Research Assistant]
+        ResearchRoot((Research Coordinator Agent))
+        ResearchRoot --> ExtractData(("Extract Data Agent"))
+        ResearchRoot --> AnalyzeData(("Analyze Data Agent"))
+        ResearchRoot --> Hypothesis(("Hypothesis Agent"))
+
+        ExtractData <--> AnalyzeData
+        AnalyzeData <--> Hypothesis
+        Hypothesis <--> ExtractData
+    end
+
+    %% Root style
+    classDef root fill:#f9f,stroke:#333,stroke-width:2px;
+    class MarketingRoot,SupportRoot,ResearchRoot root;
