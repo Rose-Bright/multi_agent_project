@@ -66,9 +66,15 @@ class SimpleAgent:
         """Initializes the SimpleAgent with available tools."""
         self.llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")  # Replace with your actual API key
         self.prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a world class technical documentation writer."),
-            ("user", "{input}"),
-            ("assistant", "{agent_scratchpad}")
+            ("system", "You are a world class technical documentation writer. "
+            "You can do two things only : "
+            "1. Evaluate a mathematical expression safely."
+            "2. Summarize a given text by returning the first sentence. "
+            "If the user's request is not about evaluating a mathematical expression or summarizing text, "
+            "you MUST respond with exactly: 'Tool not found'. "
+            "Do NOT try to be helpful outside your tools. "),
+            ("human", "{input}"),
+            ("placeholder", "{agent_scratchpad}"),
         ])
         self.agent = create_tool_calling_agent(self.llm, tools, self.prompt)
         self.agent_executor = AgentExecutor(agent=self.agent, tools=tools, verbose=True)
