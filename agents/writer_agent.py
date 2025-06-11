@@ -35,8 +35,8 @@ class WriterAgent:
              "you MUST respond with exactly: 'Tool not found'. "
              "Do NOT try to be helpful outside your tools. "
              "If you are unsure, respond with 'Tool not found'."),
-            ("user", "{input}"),
-            ("assistant", "{agent_scratchpad}")
+            ("human", "{input}"),
+            ("placeholder", "{agent_scratchpad}"),
         ])
         self.agent = create_tool_calling_agent(self.llm, writer_tools, self.prompt)
         self.agent_executor = AgentExecutor(agent=self.agent, tools=writer_tools, verbose=True)
