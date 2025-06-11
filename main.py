@@ -1,64 +1,126 @@
+from flask import Flask, send_from_directory, request, jsonify
+from flask_cors import CORS
 from supervisors.customer_support.customer_support_supervisor import supervisor_graph
-from supervisors.marketing.campaign_director_supervisor import campaign_graph  # Add this import
-
+from supervisors.marketing.campaign_director_supervisor import campaign_graph
+from workflows.search_literature_flow import workflow as literature_workflow
+from agents.math_agent import MathAgent
+from agents.writer_agent import WriterAgent
+from utils.memory import ShortTermMemoryManager, LongTermMemoryManager
 from langgraph.graph import MessagesState
 from langchain_core.messages import HumanMessage
+from langgraph.checkpoint.memory import InMemorySaver
 
-if __name__ == "__main__":
-    print("\n--- Customer Support Supervisor Test ---")
-    test_messages = [
-       # "What is your return policy?",
-       # "My computer won't turn on.",
-       # "I have a question about my invoice.",
-       # "How do I reset my password? Could I have the status of my invoice that start with INV123456?",
-       # "Can you translate this to Spanish?"
-    ]
+app = Flask(
+    __name__,
+    static_folder="static/frontend/build/static",
+    static_url_path="/static"
+)
+CORS(app)
 
-    for msg in test_messages:
-        print(f"\nUser: {msg}")
-        state = MessagesState(messages=[HumanMessage(content=msg)])
-        result = supervisor_graph.invoke(state)
-        print("\n--- Full Message Trace ---")
-        for m in result["messages"]:
-            m.pretty_print()
+checkpointer = InMemorySaver()
+global_short_term_manager = ShortTermMemoryManager()
+global_long_term_manager = LongTermMemoryManager()
+user_id = "user123"
 
-        # Find the last AI message
-        print("\n--- AI Response ---")
-        for m in result["messages"]:
-            ai_messages = [m for m in result["messages"] if m.type == "ai"]
-        if ai_messages:
-            print(f"AI: {ai_messages[-1].content}")
+@app.route('/')
+def index():
+    return send_from_directory('static/frontend/build', 'index.html')
+
+@app.route('/<path:path>')
+def static_proxy(path):
+    return send_from_directory('static/frontend/build', path)
+
+@app.route('/run_agent', methods=['POST'])
+def run_agent():
+    try:
+        data = request.json
+        agent_type = data.get('agent_type')
+        messages = data.get('messages')
+        message = data.get('message')
+        thread_id = data.get('thread_id', user_id)
+
+        if not messages:
+            messages = [{"role": "user", "content": message}]
+
+        if agent_type == 'customer_support':
+            return run_customer_support(message)
+        elif agent_type == 'marketing':
+            return run_marketing(message)
+        elif agent_type == 'literature':
+            return run_literature(message)
+        elif agent_type == 'math':
+            return run_math_agent(messages, thread_id)
+        elif agent_type == 'writer':
+            return run_writer_agent(messages, thread_id)
         else:
-            print("No AI response.")
+            return jsonify({'error': 'Invalid agent type'}), 400
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({'error': f'Backend exception: {str(e)}'}), 500
 
-    print("\n--- Research Literature Workflow Test ---")
-    #query = {
-    #"role": "user",
-    #"content": "I'd like to search recent research on CRISPR in cancer. Clean and analyze the data, then generate a hypothesis."
-    #}
+def run_customer_support(msg):
+    state = MessagesState(messages=[HumanMessage(content=msg)])
+    result = supervisor_graph.invoke(state)
+    ai_messages = [m for m in result["messages"] if m.type == "ai"]
+    return jsonify({'response': ai_messages[-1].content if ai_messages else "No AI response."})
 
-    #for chunk in workflow.stream([query], subgraphs=True):
-    #    pretty_print_messages(chunk)
+def run_marketing(msg):
+    state = MessagesState(messages=[HumanMessage(content=msg)])
+    result = campaign_graph.invoke(state)
+    ai_messages = [m for m in result["messages"] if m.type == "ai"]
+    return jsonify({'response': ai_messages[-1].content if ai_messages else "No AI response."})
 
-    print("\n--- Campaign Director Supervisor Test ---")
-    campaign_test_messages = [
-        "Launch a new marketing campaign for our summer product line.",
-        "Analyze the last campaign's performance.",
-        "Deploy the new ad creatives to all channels."
-    ]
+def run_literature(msg):
+    messages = [HumanMessage(content=msg)]
+    result = literature_workflow(messages)
+    return jsonify({'response': result})
 
-    for msg in campaign_test_messages:
-        print(f"\nUser: {msg}")
-        state = MessagesState(messages=[HumanMessage(content=msg)])
-        result = campaign_graph.invoke(state)
-        print("\n--- Full Message Trace ---")
-        for m in result["messages"]:
-            m.pretty_print()
+def run_math_agent(messages, thread_id):
+    agent = MathAgent(
+        short_term_memory=checkpointer,
+        long_term_memory=global_long_term_manager.get_store(),
+        user_id=user_id
+    )
 
-        # Find the last AI message
-        print("\n--- AI Response ---")
-        ai_messages = [m for m in result["messages"] if m.type == "ai"]
-        if ai_messages:
-            print(f"AI: {ai_messages[-1].content}")
-        else:
-            print("No AI response.")
+    latest_input = messages[-1]["content"]
+    # Convert to LangChain message objects
+    chat_history = []
+    for m in messages:
+        if m["role"] == "user":
+            chat_history.append(HumanMessage(content=m["content"]))
+        elif m["role"] == "assistant":
+            from langchain_core.messages import AIMessage
+            chat_history.append(AIMessage(content=m["content"]))
+
+    result = agent.agent_executor.invoke(
+        {"input": latest_input, "chat_history": chat_history},
+        config={"configurable": {"thread_id": thread_id}}
+    )
+    return jsonify({'response': result["output"]})
+
+def run_writer_agent(messages, thread_id):
+    agent = WriterAgent(
+        short_term_memory=checkpointer,
+        long_term_memory=global_long_term_manager.get_store(),
+        user_id=user_id
+    )
+
+    latest_input = messages[-1]["content"]
+    # Convert to LangChain message objects
+    chat_history = []
+    for m in messages:
+        if m["role"] == "user":
+            chat_history.append(HumanMessage(content=m["content"]))
+        elif m["role"] == "assistant":
+            from langchain_core.messages import AIMessage
+            chat_history.append(AIMessage(content=m["content"]))
+
+    result = agent.agent_executor.invoke(
+        {"input": latest_input, "chat_history": chat_history},
+        config={"configurable": {"thread_id": thread_id}}
+    )
+    return jsonify({'response': result["output"]})
+
+if __name__ == '__main__':
+    app.run(debug=False)

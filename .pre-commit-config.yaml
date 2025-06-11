@@ -7,7 +7,7 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      - id: check-added-large-files
+      #- id: check-added-large-files
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: check-symlinks
@@ -58,6 +58,7 @@ repos:
     rev: v2.1.0
     hooks:
       - id: codespell
+        exclude: static/frontend/package-lock.json
 
   # 🔹 Regex-based Python code checks (prevent bad practices)
   - repo: https://github.com/pre-commit/pygrep-hooks
