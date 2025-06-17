@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeMathjax from 'rehype-mathjax';
 
 const agentOptions = [
   { value: 'customer_support', label: 'Customer Support' },
@@ -92,7 +95,16 @@ export default function App() {
             className={`d-flex ${msg.role === 'user' ? 'justify-content-end' : 'justify-content-start'} mb-2`}
           >
             <div className={`p-2 rounded ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-light text-dark'}`} style={{ maxWidth: "75%" }}>
-              <strong>{msg.role === 'system' ? '⚠️ System' : msg.role === 'user' ? 'You' : 'Agent'}:</strong> {msg.content}
+              <strong>
+                {msg.role === 'system' ? '⚠️ System' : msg.role === 'user' ? 'You' : 'Agent'}:
+              </strong>
+              <div>
+                <ReactMarkdown
+                  children={msg.content}
+                  remarkPlugins={[remarkMath]}
+                  rehypePlugins={[rehypeMathjax]}
+                />
+              </div>
             </div>
           </div>
         ))}

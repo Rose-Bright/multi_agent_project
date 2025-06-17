@@ -173,3 +173,5 @@ cython_debug/
 # Ignore Ruff cache files to avoid unnecessary commits, reduce repository size, prevent conflicts, and focus on relevant files.
 # Note: Ruff automatically creates a .ruff_cache/.gitignore file, but including this here ensures the folder is grayed out in the VSCode explorer.
 .ruff_cache/
+
+chroma_db/

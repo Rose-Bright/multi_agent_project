@@ -1,3 +1,4 @@
+from logging_config import setup_logging
 from flask import Flask, send_from_directory, request, jsonify
 from flask_cors import CORS
 from supervisors.customer_support.customer_support_supervisor import supervisor_graph
@@ -5,11 +6,11 @@ from supervisors.marketing.campaign_director_supervisor import campaign_graph
 from workflows.search_literature_flow import workflow as literature_workflow
 from agents.math_agent import MathAgent
 from agents.writer_agent import WriterAgent
-from utils.memory import ShortTermMemoryManager, LongTermMemoryManager
+from utils.memory import MemoryManager
+from utils.chat_utils import handle_agent_chat
 from langgraph.graph import MessagesState
 from langchain_core.messages import HumanMessage
-from langgraph.checkpoint.memory import InMemorySaver
-
+setup_logging()
 app = Flask(
     __name__,
     static_folder="static/frontend/build/static",
@@ -17,10 +18,8 @@ app = Flask(
 )
 CORS(app)
 
-checkpointer = InMemorySaver()
-global_short_term_manager = ShortTermMemoryManager()
-global_long_term_manager = LongTermMemoryManager()
-user_id = "user123"
+memory_manager = MemoryManager()
+user_id = "123"
 
 @app.route('/')
 def index():
@@ -77,50 +76,49 @@ def run_literature(msg):
     return jsonify({'response': result})
 
 def run_math_agent(messages, thread_id):
-    agent = MathAgent(
-        short_term_memory=checkpointer,
-        long_term_memory=global_long_term_manager.get_store(),
-        user_id=user_id
-    )
-
-    latest_input = messages[-1]["content"]
-    # Convert to LangChain message objects
-    chat_history = []
-    for m in messages:
-        if m["role"] == "user":
-            chat_history.append(HumanMessage(content=m["content"]))
-        elif m["role"] == "assistant":
-            from langchain_core.messages import AIMessage
-            chat_history.append(AIMessage(content=m["content"]))
-
-    result = agent.agent_executor.invoke(
-        {"input": latest_input, "chat_history": chat_history},
-        config={"configurable": {"thread_id": thread_id}}
-    )
-    return jsonify({'response': result["output"]})
+    agent = MathAgent(memory_manager, user_id)
+    output = handle_agent_chat(agent, messages, thread_id, memory_manager)
+    return jsonify({'response': output})
 
 def run_writer_agent(messages, thread_id):
-    agent = WriterAgent(
-        short_term_memory=checkpointer,
-        long_term_memory=global_long_term_manager.get_store(),
-        user_id=user_id
-    )
+    agent = WriterAgent(memory_manager, user_id)
+    output = handle_agent_chat(agent, messages, thread_id, memory_manager)
+    return jsonify({'response': output})
 
-    latest_input = messages[-1]["content"]
-    # Convert to LangChain message objects
-    chat_history = []
-    for m in messages:
-        if m["role"] == "user":
-            chat_history.append(HumanMessage(content=m["content"]))
-        elif m["role"] == "assistant":
-            from langchain_core.messages import AIMessage
-            chat_history.append(AIMessage(content=m["content"]))
+@app.route('/get_memory', methods=['GET'])
+def get_memory():
+    thread_id = request.args.get('thread_id', user_id)
+    query = request.args.get('query', '')
+    chat_history = memory_manager.get_latest_chat_history(thread_id)
+    short_term_list = [
+        {
+            'text': getattr(m, 'content', ''),
+            'role': getattr(m, 'role', 'user' if getattr(m, 'type', '') == 'human' else 'assistant'),
+            'agent': getattr(m, 'agent', None),  # Add this if your message object has agent info
+            'timestamp': getattr(m, 'ts', None)  # Add this if your message object has timestamp info
+        }
+        for m in chat_history
+    ] if chat_history else []
 
-    result = agent.agent_executor.invoke(
-        {"input": latest_input, "chat_history": chat_history},
-        config={"configurable": {"thread_id": thread_id}}
-    )
-    return jsonify({'response': result["output"]})
+    if query:
+        long_term_memory = memory_manager.search_long_term_memory(user_id, query)
+    else:
+        long_term_memory = memory_manager.get_all_long_term_memory(user_id)
+
+    long_term_list = [
+        {
+            'text': m['text'],
+            'role': m['metadata'].get('role'),
+            'agent': m['metadata'].get('agent'),
+            'ts': m['metadata'].get('timestamp')
+        }
+        for m in long_term_memory
+    ] if long_term_memory else []
+
+    return jsonify({
+        'short_term_memory': short_term_list,
+        'long_term_memory': long_term_list
+    })
 
 if __name__ == '__main__':
     app.run(debug=False)

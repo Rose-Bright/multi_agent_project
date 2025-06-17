@@ -6,7 +6,8 @@ from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.messages import HumanMessage, AIMessage
+from utils.chat_utils import prepare_agent_input
+from tools.memory_tools import retrieve_memory
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -49,24 +50,28 @@ def safe_eval(expression: str) -> float:
     node = ast.parse(expression, mode='eval').body
     return eval_node(node)
 
-math_tools = [evaluate_expression]
+math_tools = [evaluate_expression, retrieve_memory]
 
 # ------------------ Agent ------------------
 
 class MathAgent:
-    def __init__(self, short_term_memory, long_term_memory, user_id):
-        """Initializes the MathAgent with tools and memory."""
+    def __init__(self, memory_manager, user_id):
+        self.memory = memory_manager
         self.user_id = user_id
-        self.short_term_memory = short_term_memory
-        self.long_term_memory = long_term_memory
         self.llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
         self.prompt = ChatPromptTemplate.from_messages([
             ("system",
-            "You are a math expert. "
-            "You can ONLY use the following tool: evaluate_expression. "
-            "Only call this tool once. "
-            "Once you've received the result, return it immediately as the final answer. "
-            "If the user's request is not a math expression, respond with: 'Tool not found'."),
+             "You are a math expert. "
+             "You MUST use ONLY the tools: evaluate_expression and retrieve_memory to answer ANY request. "
+             "NEVER answer a math question directly or do calculations yourself, even after retrieving a value from memory. "
+             "If you retrieve a value from memory and need to use it in a calculation, you MUST call evaluate_expression with the correct expression. "
+             "If you do not use the tool, your answer could be invalid and will have to be rejected in case you hallucinate. "
+             "If the user's request refers to a previous answer or question, use both the chat history and any relevant past knowledge provided to resolve what the user means. "
+             "ALWAYS format your answers using Markdown. For math, use LaTeX in double dollar signs ($$...$$)."
+             "For example, reply: The result of the expression $$2 \\times 2$$ is $$4$$. "
+             r"for example, do NOT reply: 'The result of multiplying the last math result \(4\) by \(10\) is \(40\).' "
+             "If you cannot resolve the request as a math expression, respond with: 'Tool not found'."
+            ),
             ("placeholder", "{chat_history}"),
             ("human", "{input}"),
             ("placeholder", "{agent_scratchpad}"),
@@ -76,27 +81,9 @@ class MathAgent:
             agent=self.agent,
             tools=math_tools,
             verbose=True,
-            checkpointer=self.short_term_memory,
-            store=self.long_term_memory,
+            checkpointer=self.memory.get_short_term(),
+            store=self.memory.get_long_term(),
         )
 
     def choose_tool(self, messages, config=None) -> str:
-        if config is None:
-            config = {}
-
-        # Convert list of dicts to list of LangChain messages
-        langchain_messages = []
-        for msg in messages:
-            role = msg["role"]
-            content = msg["content"]
-            if role == "user":
-                langchain_messages.append(HumanMessage(content=content))
-            elif role == "assistant":
-                langchain_messages.append(AIMessage(content=content))
-
-        # Add to config
-        config["configurable"]["chat_history"] = langchain_messages
-
-        latest_input = messages[-1]["content"]
-        response = self.agent_executor.invoke({"input": latest_input}, config=config)
-        return response["output"]
+        return prepare_agent_input(self, self.agent, messages, self.memory, self.user_id, config)
