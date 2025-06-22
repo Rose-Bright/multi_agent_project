@@ -31,55 +31,10 @@
 .env.local
 .env.development
 .env.production
-.env.test
-*.ini
-*.toml
-*.cfg
-*.conf
 
-# 🔑 Private keys and authentication files
-*.pem
-*.crt
-*.key
-*.pfx
-*.cert
-
-# 🔐 Secrets management and authentication data
-*.secrets
-*.vault
-*.cred
-*.private
-*.token
-*.auth
-secrets.json
-config/secrets.yml
-
-# 📂 Database and credentials
-*.sqlite
-*.db
-*.db-shm
-*.db-wal
-*.mysql
-*.psql
-
-# 📜 Logs and debugging files
-*.log
-logs/
-debug.log
-nohup.out
-
-# 🏗️ Compiled and binary files
-*.exe
-*.dll
-*.so
-*.dylib
-*.o
-*.out
-*.pyc
-*.pyo
-
-# 📊 Large data and AI model artifacts
-*.csv
-*.tsv
-*.parquet
-*.js
+# 🛡️ Google Cloud credentials and configuration
+service-account-key.json
+*.json
+gcp-credentials.json
+google-cloud-credentials.json
+application_default_credentials.json

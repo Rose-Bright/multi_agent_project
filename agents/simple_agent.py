@@ -3,7 +3,7 @@ import operator
 import logging
 import os
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
+from langchain_google_vertexai import ChatVertexAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 from langchain.agents import AgentExecutor, create_tool_calling_agent
@@ -14,8 +14,10 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
 
+# Vertex AI configuration
+project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
 # Define custom tools
 @tool
 def evaluate_expression(expression: str) -> str:
@@ -64,7 +66,13 @@ class SimpleAgent:
 
     def __init__(self):
         """Initializes the SimpleAgent with available tools."""
-        self.llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")  # Replace with your actual API key
+        self.llm = ChatVertexAI(
+            model_name="gemini-1.5-flash",
+            project=project_id,
+            location=location,
+            temperature=0.0,
+            max_output_tokens=1024
+        )
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", "You are a world class technical documentation writer. "
             "You can do two things only : "
@@ -82,7 +90,7 @@ class SimpleAgent:
 
     def choose_tool(self, question: str) -> str:
         """
-        Chooses the appropriate tool based on the input question using LangChain and OpenAI.
+        Chooses the appropriate tool based on the input question using LangChain and Vertex AI.
 
         Args:
             question (str): The input question to analyze.
@@ -93,3 +101,4 @@ class SimpleAgent:
         response = self.agent_executor.invoke({"input": question})
         logger.info("Response for question '%s': %s", question, response["output"])
         return response["output"]
+
