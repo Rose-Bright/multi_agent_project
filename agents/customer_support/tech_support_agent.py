@@ -1,15 +1,19 @@
 from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
+from langchain_google_vertexai import ChatVertexAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 import os
+import logging
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
 
-# Fake tech support data (could be loaded from a file)
+project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 _TECH_SUPPORT_DATA = [
     {"issue": "Cannot connect to Wi-Fi", "solution": "Restart your router and check your Wi-Fi password."},
     {"issue": "Computer won't turn on", "solution": "Check the power cable and try a different outlet."},
@@ -34,7 +38,13 @@ tech_support_tools = [get_tech_solution, list_common_issues]
 class TechSupportAgent:
     def __init__(self):
         """Initializes the TechSupportAgent with available tools."""
-        self.llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
+        self.llm = ChatVertexAI(
+                model_name="gemini-2.5-flash",
+                project=project_id,
+                location=location,
+                temperature=0.0,
+                max_output_tokens=1024,
+                convert_system_message_to_human=True)
         self.prompt = ChatPromptTemplate.from_messages([
             ("system",
              "You are a technical support agent. "
@@ -48,10 +58,11 @@ class TechSupportAgent:
         ])
         self.agent = create_tool_calling_agent(self.llm, tech_support_tools, self.prompt)
         self.agent_executor = AgentExecutor(agent=self.agent, tools=tech_support_tools, verbose=True)
+        logger.info("TechSupportAgent initialized with tools: %s", [tool.name for tool in tech_support_tools])
 
     def choose_tool(self, question: str) -> str:
         """
-        Chooses the appropriate tool based on the input question using LangChain and OpenAI.
+        Chooses the appropriate tool based on the input question using LangChain and Vertex AI.
 
         Args:
             question (str): The input question to analyze.
@@ -60,6 +71,7 @@ class TechSupportAgent:
             str: The result from the chosen tool.
         """
         response = self.agent_executor.invoke({"input": question})
+        logger.info("Response for question '%s': %s", question, response["output"])
         return response["output"]
 
 # Example of how the fake tech support data could be stored in a JSON file:

@@ -1,12 +1,18 @@
 from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
+from langchain_google_vertexai import ChatVertexAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 import os
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
+
+project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @tool
 def check_invoice_status(invoice_id: str) -> str:
@@ -28,7 +34,15 @@ billing_tools = [check_invoice_status, generate_invoice]
 class BillingAgent:
     def __init__(self):
         """Initializes the BillingAgent with available tools."""
-        self.llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
+        self.llm = ChatVertexAI(
+                model_name="gemini-2.5-flash",
+                project=project_id,
+                location=location,
+                temperature=0.0,
+                max_output_tokens=1024,
+                convert_system_message_to_human=True
+        )
+
         self.prompt = ChatPromptTemplate.from_messages([
             ("system",
              "You are a billing support agent. "
@@ -42,6 +56,7 @@ class BillingAgent:
         ])
         self.agent = create_tool_calling_agent(self.llm, billing_tools, self.prompt)
         self.agent_executor = AgentExecutor(agent=self.agent, tools=billing_tools, verbose=True)
+        logger.info("BillingAgent initialized with tools: %s", [tool.name for tool in billing_tools])
 
     def choose_tool(self, question: str) -> str:
         """
@@ -54,4 +69,5 @@ class BillingAgent:
             str: The result from the chosen tool.
         """
         response = self.agent_executor.invoke({"input": question})
+        logger.info("Response for question '%s': %s", question, response["output"])
         return response["output"]

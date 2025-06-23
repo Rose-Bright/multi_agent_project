@@ -1,14 +1,29 @@
-from langchain_openai import ChatOpenAI
+from langchain_google_vertexai import ChatVertexAI
 from langgraph_supervisor import create_supervisor
 from langgraph.prebuilt import create_react_agent
+import os
+from dotenv import load_dotenv
 
 from agents.customer_support.faq_agent import FAQAgent
 from agents.customer_support.billing_agent import BillingAgent
 from agents.customer_support.tech_support_agent import TechSupportAgent
 
-model = ChatOpenAI(model="gpt-4o-mini")
+load_dotenv()
 
-# Wrappers for your agent logic
+project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+
+
+model = ChatVertexAI(
+        model_name="gemini-2.5-flash",
+        project=project_id,
+        location=location,
+        temperature=0.0,
+        max_output_tokens=1024,
+        convert_system_message_to_human=True
+)
+
+
 def faq_tool(query: str) -> str:
     """Handle FAQ-related questions."""
     agent = FAQAgent()

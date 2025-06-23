@@ -68,7 +68,7 @@ This file documenting all changes made.
 
 The code is configured with `gemini-2.5-flash` for optimal cost/performance balance. Alternative models:
 - `gemini-2.5-pro`: Higher capability, increased cost
-- `gemini-1.0-pro`: Legacy model, basic functionality
+- `gemini-2.5-pro`: Legacy model, basic functionality
 
 ## Support
 

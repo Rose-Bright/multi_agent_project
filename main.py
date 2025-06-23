@@ -1,3 +1,4 @@
+import logging
 from supervisors.customer_support.customer_support_supervisor import supervisor_graph
 from langgraph.graph import MessagesState
 from langchain_core.messages import HumanMessage
@@ -7,6 +8,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
+    logger.info("Starting Customer Support Supervisor Test")
     print("\n--- Customer Support Supervisor Test ---")
     test_messages = [
        # "What is your return policy?",
@@ -17,6 +19,7 @@ if __name__ == "__main__":
     ]
 
     for msg in test_messages:
+        logger.info("Processing user message: %s", msg)
         print(f"\nUser: {msg}")
         state = MessagesState(messages=[HumanMessage(content=msg)])
         result = supervisor_graph.invoke(state)
@@ -31,4 +34,5 @@ if __name__ == "__main__":
         if ai_messages:
             print(f"AI: {ai_messages[-1].content}")
         else:
+            logger.warning("No AI response generated")
             print("No AI response.")
