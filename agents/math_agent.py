@@ -1,13 +1,23 @@
 import ast
 import operator
-from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain.agents import AgentExecutor, create_tool_calling_agent
+import logging
 import os
 from dotenv import load_dotenv
+from langchain_google_vertexai import ChatVertexAI
+from langchain_core.tools import tool
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.agents import AgentExecutor, create_tool_calling_agent
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Load environment variables
 load_dotenv()
+
+# Vertex AI configuration
+project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 @tool
 def evaluate_expression(expression: str) -> str:
@@ -46,7 +56,13 @@ math_tools = [evaluate_expression]
 class MathAgent:
     def __init__(self):
         """Initializes the MathAgent with available tools."""
-        self.llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
+        self.llm = ChatVertexAI(
+            model_name="gemini-2.5-flash",
+            project=project_id,
+            location=location,
+            temperature=0.0,
+            max_output_tokens=1024
+        )
         self.prompt = ChatPromptTemplate.from_messages([
             ("system",
              "You are a math expert. "
@@ -60,6 +76,7 @@ class MathAgent:
         ])
         self.agent = create_tool_calling_agent(self.llm, math_tools, self.prompt)
         self.agent_executor = AgentExecutor(agent=self.agent, tools=math_tools, verbose=True)
+        logger.info("MathAgent initialized with tools: %s", [tool.name for tool in math_tools])
 
     def choose_tool(self, question: str) -> str:
         """
@@ -72,5 +89,5 @@ class MathAgent:
             str: The result from the chosen tool.
         """
         response = self.agent_executor.invoke({"input": question})
+        logger.info("Response for question '%s': %s", question, response["output"])
         return response["output"]
-

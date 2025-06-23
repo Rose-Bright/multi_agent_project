@@ -75,17 +75,17 @@ pip install -r requirements.txt
 
 ### 5. Available Models
 
-The code is configured to use `gemini-1.5-flash`, but you can change to other available models:
+The code is configured to use `gemini-2.5-flash`, but you can change to other available models:
 
-- `gemini-1.5-flash` (fast, cost-effective)
-- `gemini-1.5-pro` (more capable, higher cost)
+- `gemini-2.5-flash` (fast, cost-effective)
+- `gemini-2.5-pro` (more capable, higher cost)
 - `gemini-1.0-pro` (legacy model)
 
 To change the model, update the `model_name` parameter in `agents/simple_agent.py`:
 
 ```python
 self.llm = ChatVertexAI(
-    model_name="gemini-1.5-pro",  # Change this line
+    model_name="gemini-2.5-pro",  # Change this line
     project=project_id,
     location=location,
     temperature=0.0,
@@ -106,8 +106,8 @@ Update the `GOOGLE_CLOUD_LOCATION` environment variable to use a different regio
 ## Cost Considerations
 
 - Gemini models are priced per token (input and output)
-- `gemini-1.5-flash` is more cost-effective for simple tasks
-- `gemini-1.5-pro` offers better performance for complex reasoning
+- `gemini-2.5-flash` is more cost-effective for simple tasks
+- `gemini-2.5-pro` offers better performance for complex reasoning
 - Monitor usage in the Google Cloud Console
 
 ## Troubleshooting
@@ -137,7 +137,7 @@ project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
 location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 llm = ChatVertexAI(
-    model_name="gemini-1.5-flash",
+    model_name="gemini-2.5-flash",
     project=project_id,
     location=location
 )

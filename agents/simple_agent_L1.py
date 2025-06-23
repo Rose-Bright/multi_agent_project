@@ -67,7 +67,7 @@ class SimpleAgent:
     def __init__(self):
         """Initializes the SimpleAgent with available tools."""
         self.llm = ChatVertexAI(
-            model_name="gemini-1.5-flash",
+            model_name="gemini-2.5-flash",
             project=project_id,
             location=location,
             temperature=0.0,

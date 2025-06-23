@@ -16,7 +16,7 @@ Successfully upgraded the Simple Agent from OpenAI to Google Cloud Vertex AI whi
 - **Authentication**: Removed OpenAI API key dependency, added Google Cloud project configuration
 - **Model Configuration**: 
   - **Before**: `ChatOpenAI(api_key=api_key, model="gpt-4o-mini")`
-  - **After**: `ChatVertexAI(model_name="gemini-1.5-flash", project=project_id, location=location, temperature=0.0, max_output_tokens=1024)`
+  - **After**: `ChatVertexAI(model_name="gemini-2.5-flash", project=project_id, location=location, temperature=0.0, max_output_tokens=1024)`
 - **Environment Variables**: Now uses `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION`
 
 ### 3. `.copilotignore`
@@ -52,7 +52,7 @@ This file documenting all changes made.
 ## Key Benefits of Migration
 
 1. **Cost Efficiency**: Vertex AI Gemini models are generally more cost-effective
-2. **Performance**: Gemini-1.5-flash offers fast response times
+2. **Performance**: Gemini-2.5-flash offers fast response times
 3. **Enterprise Features**: Better integration with Google Cloud ecosystem
 4. **Scalability**: Vertex AI provides enterprise-grade scaling capabilities
 5. **Compliance**: Google Cloud's enterprise compliance and security features
@@ -66,8 +66,8 @@ This file documenting all changes made.
 
 ## Model Options
 
-The code is configured with `gemini-1.5-flash` for optimal cost/performance balance. Alternative models:
-- `gemini-1.5-pro`: Higher capability, increased cost
+The code is configured with `gemini-2.5-flash` for optimal cost/performance balance. Alternative models:
+- `gemini-2.5-pro`: Higher capability, increased cost
 - `gemini-1.0-pro`: Legacy model, basic functionality
 
 ## Support
