@@ -1,23 +1,20 @@
 from langchain_core.tools import tool
 from langchain_google_vertexai import ChatVertexAI
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 import os
 import logging
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-# Vertex AI configuration
 project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
 location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Fake FAQ data (could be loaded from a file)
 _FAQ_DATA = [
     {"question": "What is your return policy?", "answer": "You can return any item within 30 days of purchase."},
     {"question": "How do I reset my password?", "answer": "Click on 'Forgot password' at login and follow the instructions."},
@@ -42,28 +39,29 @@ faq_tools = [get_faq_answer, list_all_faq_questions]
 class FAQAgent:
     def __init__(self):
         """Initializes the FAQAgent with available tools."""
-
         self.llm = ChatVertexAI(
             model_name="gemini-2.5-flash",
             project=project_id,
             location=location,
             temperature=0.0,
                 max_output_tokens=1024,
-                convert_system_message_to_human=True
         )
 
-
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system",
+        system_message = SystemMessage(content=(
              "You are a FAQ support agent. "
              "You can ONLY use the following tools: get_faq_answer and list_all_faq_questions. "
              "If the user's request is not about FAQs, "
              "you MUST respond with exactly: 'Tool not found'. "
              "Do NOT try to be helpful outside your tools. "
-             "If you are unsure, respond with 'Tool not found'."),
-            ("user", "{input}"),
+            "If you are unsure, respond with 'Tool not found'."
+        ))
+
+        self.prompt = ChatPromptTemplate.from_messages([
+            system_message,
+            ("human", "{input}"),
             ("assistant", "{agent_scratchpad}")
         ])
+
         self.agent = create_tool_calling_agent(self.llm, faq_tools, self.prompt)
         self.agent_executor = AgentExecutor(agent=self.agent, tools=faq_tools, verbose=True)
         logger.info("FAQAgent initialized with tools: %s", [tool.name for tool in faq_tools])
@@ -80,13 +78,3 @@ class FAQAgent:
         """
         response = self.agent_executor.invoke({"input": question})
         return response["output"]
-
-# Example of how the fake FAQ data could be stored in a JSON file:
-# filepath: c:\projects\multi_agent_project\agents\customer_support\faq_data.json
-"""
-[
-    {"question": "What is your return policy?", "answer": "You can return any item within 30 days of purchase."},
-    {"question": "How do I reset my password?", "answer": "Click on 'Forgot password' at login and follow the instructions."},
-    {"question": "Do you offer international shipping?", "answer": "Yes, we ship to most countries worldwide."}
-]
-"""
