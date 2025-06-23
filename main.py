@@ -1,39 +1,34 @@
-import logging
-from agents.math_agent import MathAgent
-from agents.writer_agent import WriterAgent
+from supervisors.customer_support.customer_support_supervisor import supervisor_graph
+from langgraph.graph import MessagesState
+from langchain_core.messages import HumanMessage
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-    try:
-        math_agent = MathAgent()
-        writer_agent = WriterAgent()
+    print("\n--- Customer Support Supervisor Test ---")
+    test_messages = [
+       # "What is your return policy?",
+       # "My computer won't turn on.",
+       # "I have a question about my invoice.",
+        "How do I reset my password? Could I have the status of my invoice that start with INV123456?",
+       # "Can you translate this to Spanish?"
+    ]
 
-        # Test cases
-        logger.info("Testing MathAgent...")
-        # Test the calculator tool
-        result = math_agent.choose_tool('What is 4 * 2?')
-        print("MathAgent result:", result)
+    for msg in test_messages:
+        print(f"\nUser: {msg}")
+        state = MessagesState(messages=[HumanMessage(content=msg)])
+        result = supervisor_graph.invoke(state)
+        print("\n--- Full Message Trace ---")
+        for m in result["messages"]:
+            m.pretty_print()
 
-        logger.info("Testing WriterAgent summarize...")
-        # Test the summarizer tool
-        result = writer_agent.choose_tool('Summarize this text: This is a long text. It has multiple sentences.')
-        print("WriterAgent summarize result:", result)
-
-        logger.info("Testing WriterAgent paragraph...")
-        # Test to write a paragraph
-        result = writer_agent.choose_tool('Write a paragraph about AI.')
-        print("WriterAgent paragraph result:", result)
-
-        logger.info("Testing tool not found cases...")
-        # Test cases where no tool is found
-        result = math_agent.choose_tool('Translate this text to French: Hello, how are you?')
-        print("MathAgent no tool result:", result)
-        
-        result = writer_agent.choose_tool('What is 4 * 2?')
-        print("WriterAgent no tool result:", result)
-
-    except Exception as e:
-        logger.error(f"An error occurred: {str(e)}")
+        # Find the last AI message
+        print("\n--- AI Response ---")
+        for m in result["messages"]:
+            ai_messages = [m for m in result["messages"] if m.type == "ai"]
+        if ai_messages:
+            print(f"AI: {ai_messages[-1].content}")
+        else:
+            print("No AI response.")
